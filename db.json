@@ -1,0 +1,14 @@
+{
+    "google": {
+        "response": "OK"
+    },
+    "microsoft": {
+        "response": "OK"
+    },
+    "amazon": {
+        "response": "OK"
+    },
+    "netflix": {
+        "response": "OK"
+    }
+}
