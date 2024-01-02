@@ -22,8 +22,6 @@ public class MultithreadedClient {
     public static void main(String[] args) throws InterruptedException, IOException {
         Instant start = Instant.now();
         final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-        connectionManager.setDefaultMaxPerRoute(10);
-        connectionManager.setMaxTotal(40);
         try (CloseableHttpClient httpClient = HttpClients.custom()
                 .setConnectionManager(connectionManager)
                 .build()) {
