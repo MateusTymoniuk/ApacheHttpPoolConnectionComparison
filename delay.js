@@ -1,4 +1,4 @@
-// hello.js
+// delay.js
 module.exports = (req, res, next) => {
     setTimeout(next, getRandomArbitrary())
 }

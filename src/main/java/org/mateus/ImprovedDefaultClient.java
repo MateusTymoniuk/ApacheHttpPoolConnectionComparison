@@ -4,7 +4,6 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,20 +15,15 @@ import java.time.Instant;
 import static org.mateus.Constants.NUMBER_OF_REQUESTS;
 import static org.mateus.Constants.URIS_TO_GET;
 
-public class ConnectionPoolClient {
+public class ImprovedDefaultClient {
 
     private static final Logger logger = LogManager.getLogger();
 
     public static void main(String[] args) throws IOException {
         Instant start = Instant.now();
 
-        final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-        connectionManager.setDefaultMaxPerRoute(10);
-        connectionManager.setMaxTotal(40);
-        try (CloseableHttpClient httpClient = HttpClients.custom()
-                .setConnectionManager(connectionManager)
-                .build()) {
-            for (String uri : URIS_TO_GET) {
+        for (String uri : URIS_TO_GET) {
+            try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
                 executeRequest(httpClient, uri);
             }
         }

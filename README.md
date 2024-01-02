@@ -13,13 +13,17 @@ by `429 - Too many requests`. Tests going to this urls can still be made but the
 Start json-server by running
 
 ```bash
-json-server --watch db.json --middlewares ./delay.js
+json-server --port 3000 --watch db.json --middlewares ./delay.js
 ```
 
 Then run any class of the project with the desired amount of requests:
 
 ```bash
 ./mvnw compile exec:java -Dexec.mainClass="org.mateus.DefaultClient"
+```
+
+```bash
+./mvnw compile exec:java -Dexec.mainClass="org.mateus.ImprovedDefaultClient"
 ```
 
 ```bash
