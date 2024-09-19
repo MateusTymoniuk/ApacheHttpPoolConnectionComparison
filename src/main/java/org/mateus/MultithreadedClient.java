@@ -1,16 +1,14 @@
 package org.mateus;
 
-import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -23,7 +21,9 @@ public class MultithreadedClient {
 
     public static void main(String[] args) throws InterruptedException, IOException {
         Instant start = Instant.now();
-        final PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create().build();
+        final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+        connectionManager.setDefaultMaxPerRoute(10);
+        connectionManager.setMaxTotal(40);
         try (CloseableHttpClient httpClient = HttpClients.custom()
                 .setConnectionManager(connectionManager)
                 .build()) {
@@ -39,6 +39,7 @@ public class MultithreadedClient {
             for (GetRequestThread thread : threads) {
                 thread.start();
             }
+
             for (GetRequestThread thread : threads) {
                 thread.join();
             }
@@ -46,28 +47,34 @@ public class MultithreadedClient {
 
         Instant finish = Instant.now();
         long timeElapsed = Duration.between(start, finish).toMillis();
-        logger.info("Time elapsed: " + timeElapsed);
+        logger.info(String.format("Total time: %d ms", timeElapsed));
     }
 
     public static class GetRequestThread extends Thread {
-        private final CloseableHttpClient client;
-        private final HttpGet get;
+        private final CloseableHttpClient httpClient;
+        private final HttpGet httpGet;
 
-        public GetRequestThread(final CloseableHttpClient client, final HttpGet get) {
-            this.client = client;
-            this.get = get;
+        public GetRequestThread(final CloseableHttpClient httpClient, final HttpGet httpGet) {
+            this.httpClient = httpClient;
+            this.httpGet = httpGet;
         }
 
         public void run() {
             try {
+                logger.info(String.format("Sending %d requests to %s", NUMBER_OF_REQUESTS, httpGet.getURI()));
+                Instant requestStartTime = Instant.now();
+
                 for (int i = 0; i < NUMBER_OF_REQUESTS; i++) {
-                    logger.info("Request sent for " + get.getUri());
-                    client.execute(get, response -> {
+                    httpClient.execute(httpGet, response -> {
                         EntityUtils.consumeQuietly(response.getEntity());
                         return null;
                     });
                 }
-            } catch (IOException | URISyntaxException e) {
+
+                Instant requestEndTime = Instant.now();
+                long requestTimeElapsed = Duration.between(requestStartTime, requestEndTime).toMillis();
+                logger.info(String.format("Elapsed time for %d requests: %d ms", NUMBER_OF_REQUESTS, requestTimeElapsed));
+            } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }

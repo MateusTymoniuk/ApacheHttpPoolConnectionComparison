@@ -12,37 +12,44 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.*;
 
-import static org.mateus.Constants.NUMBER_OF_REQUESTS;
-import static org.mateus.Constants.URIS_TO_GET;
+import static org.mateus.Constants.*;
 
-public class ConnectionPoolClient {
+public class IncreasedConnectionPool {
 
     private static final Logger logger = LogManager.getLogger();
+    private static final Map<String, Long> requestsExecutionTimePerUrl = new HashMap<>();
 
     public static void main(String[] args) throws IOException {
-        Instant start = Instant.now();
-
         final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-        connectionManager.setDefaultMaxPerRoute(10);
-        connectionManager.setMaxTotal(40);
+        connectionManager.setMaxTotal(1000);
+        long totalTime = 0;
         try (CloseableHttpClient httpClient = HttpClients.custom()
                 .setConnectionManager(connectionManager)
                 .build()) {
-            for (String uri : URIS_TO_GET) {
-                executeRequest(httpClient, uri);
+            requestsExecutionTimePerUrl.clear();
+            for (int i = 0; i < EXECUTION_AMOUNT; ++i) {
+                totalTime += startRequests(httpClient);
             }
         }
-
-        Instant finish = Instant.now();
-        long timeElapsed = Duration.between(start, finish).toMillis();
-        logger.info(String.format("Total time: %d ms", timeElapsed));
+        logger.info(String.format("Total time mean value: %d ms", totalTime / EXECUTION_AMOUNT));
     }
 
-    private static void executeRequest(HttpClient httpClient, String url) throws IOException {
+    private static long startRequests(CloseableHttpClient httpClient) throws IOException {
+        Instant start = Instant.now();
+        for (String uri : URIS_TO_GET) {
+            executeRequests(httpClient, uri);
+        }
+        Instant finish = Instant.now();
+        long totalTime = Duration.between(start, finish).toMillis();
+        logger.info(String.format("Total time: %d ms", totalTime));
+        return totalTime;
+    }
+
+    private static void executeRequests(HttpClient httpClient, String url) throws IOException {
         logger.info(String.format("Sending %d requests to %s", NUMBER_OF_REQUESTS, url));
         Instant requestStartTime = Instant.now();
-
         final HttpGet httpGet = new HttpGet(url);
         for (int i = 0; i < NUMBER_OF_REQUESTS; i++) {
             httpClient.execute(httpGet, response -> {
@@ -50,9 +57,9 @@ public class ConnectionPoolClient {
                 return null;
             });
         }
-
         Instant requestEndTime = Instant.now();
         long requestTimeElapsed = Duration.between(requestStartTime, requestEndTime).toMillis();
+        requestsExecutionTimePerUrl.compute(url, (k,v) -> Objects.isNull(v) ? requestTimeElapsed : v + requestTimeElapsed);
         logger.info(String.format("Elapsed time for %d requests: %d ms", NUMBER_OF_REQUESTS, requestTimeElapsed));
     }
 }

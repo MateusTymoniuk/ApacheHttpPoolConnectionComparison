@@ -1,14 +1,13 @@
 package org.mateus;
 
-import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -21,29 +20,32 @@ public class DefaultClient {
 
     public static void main(String[] args) throws IOException {
         Instant start = Instant.now();
+
         for (String uri : URIS_TO_GET) {
             executeRequest(uri);
         }
+
         Instant finish = Instant.now();
         long timeElapsed = Duration.between(start, finish).toMillis();
-        logger.info("Time elapsed: " + timeElapsed);
+        logger.info(String.format("Total time: %d ms", timeElapsed));
     }
 
     private static void executeRequest(String url) throws IOException {
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            final HttpGet httpGet = new HttpGet(url);
-            for (int i = 0; i < NUMBER_OF_REQUESTS; i++) {
+        logger.info(String.format("Sending %d requests to %s", NUMBER_OF_REQUESTS, url));
+        Instant requestStartTime = Instant.now();
+
+        final HttpGet httpGet = new HttpGet(url);
+        for (int i = 0; i < NUMBER_OF_REQUESTS; i++) {
+            try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
                 httpClient.execute(httpGet, response -> {
-                    try {
-                        logger.info("Request sent for " + httpGet.getUri());
-                        EntityUtils.consumeQuietly(response.getEntity());
-                    } catch (URISyntaxException e) {
-                        logger.error("Failed to parse URI");
-                        throw new RuntimeException();
-                    }
+                    EntityUtils.consumeQuietly(response.getEntity());
                     return null;
                 });
             }
         }
+
+        Instant requestEndTime = Instant.now();
+        long requestTimeElapsed = Duration.between(requestStartTime, requestEndTime).toMillis();
+        logger.info(String.format("Elapsed time for %d requests: %d ms", NUMBER_OF_REQUESTS, requestTimeElapsed));
     }
 }
