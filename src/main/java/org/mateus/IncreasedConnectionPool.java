@@ -19,24 +19,26 @@ import static org.mateus.Constants.*;
 public class IncreasedConnectionPool {
 
     private static final Logger logger = LogManager.getLogger();
-    private static final Map<String, Long> requestsExecutionTimePerUrl = new HashMap<>();
+    private static final Map<String, List<Long>> requestsLatencyPerURL = new HashMap<>();
 
     public static void main(String[] args) throws IOException {
         final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
         connectionManager.setMaxTotal(1000);
+        connectionManager.setDefaultMaxPerRoute(250);
         long totalTime = 0;
         try (CloseableHttpClient httpClient = HttpClients.custom()
                 .setConnectionManager(connectionManager)
                 .build()) {
-            requestsExecutionTimePerUrl.clear();
+            requestsLatencyPerURL.clear();
             for (int i = 0; i < EXECUTION_AMOUNT; ++i) {
                 totalTime += startRequests(httpClient);
             }
         }
+        Percentiles.showPercentiles(requestsLatencyPerURL);
         logger.info(String.format("Total time mean value: %d ms", totalTime / EXECUTION_AMOUNT));
     }
 
-    private static long startRequests(CloseableHttpClient httpClient) throws IOException {
+    private static long startRequests(HttpClient httpClient) throws IOException {
         Instant start = Instant.now();
         for (String uri : URIS_TO_GET) {
             executeRequests(httpClient, uri);
@@ -59,7 +61,7 @@ public class IncreasedConnectionPool {
         }
         Instant requestEndTime = Instant.now();
         long requestTimeElapsed = Duration.between(requestStartTime, requestEndTime).toMillis();
-        requestsExecutionTimePerUrl.compute(url, (k,v) -> Objects.isNull(v) ? requestTimeElapsed : v + requestTimeElapsed);
+        requestsLatencyPerURL.computeIfAbsent(url, key -> new ArrayList<>()).add(requestTimeElapsed);
         logger.info(String.format("Elapsed time for %d requests: %d ms", NUMBER_OF_REQUESTS, requestTimeElapsed));
     }
 }
