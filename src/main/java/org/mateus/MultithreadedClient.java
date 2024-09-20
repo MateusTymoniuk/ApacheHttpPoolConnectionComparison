@@ -1,10 +1,10 @@
 package org.mateus;
 
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -61,7 +61,7 @@ public class MultithreadedClient {
 
         public void run() {
             try {
-                logger.info(String.format("Sending %d requests to %s", NUMBER_OF_REQUESTS, httpGet.getURI()));
+                logger.info(String.format("Sending %d requests to %s", NUMBER_OF_REQUESTS, httpGet.getRequestUri()));
                 Instant requestStartTime = Instant.now();
 
                 for (int i = 0; i < NUMBER_OF_REQUESTS; i++) {
